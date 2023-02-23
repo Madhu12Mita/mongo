@@ -5,6 +5,9 @@
 import java.io.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+import java.text.ParseException;
 import java.util.*;
 
 class Mongo
@@ -21,19 +24,23 @@ class Mongo
     {
         try
         {
-            this.file=new File(name);
-            this.fwrite=new FileWriter(name);
-            if(this.file.exists())
+            if(name.length()!=0)
             {
-                JSONObject json=new JSONObject();
-                this.fwrite = new FileWriter(name);
-                this.fwrite.write(json.toJSONString());
-                this.fwrite.close();
-                System.out.println("Successful creation");
-            }
-            else
-            {
-                System.out.println("File already exists");
+                name+=".json";
+                this.file=new File(name);
+                this.fwrite=new FileWriter(name);
+                if(this.file.exists())
+                {
+                    JSONObject json=new JSONObject();
+                    this.fwrite = new FileWriter(name);
+                    this.fwrite.write(json.toJSONString());
+                    this.fwrite.close();
+                    System.out.println("Successful creation");
+                }
+                else
+                {
+                    System.out.println("File already exists");
+                }
             }
         }
         catch(Exception e)
@@ -46,13 +53,13 @@ class Mongo
      * creates a single key value pair
      * @return boolean
      */
-    public boolean insertOne()
+    public boolean insertOne() throws IOException, FileNotFoundException, ParseException
     {
-        String id=this.UUID();
+        String id=this.random_id();
         String name=sc.next();
         JSONObject employeeObject = new JSONObject();
         JSONObject employee1= new JSONObject();
-        employeeObject.put("employee", employee1);
+        employeeObject.put("name", name);
         //Add employees to list
 
         this.employeeList.add(employeeObject);
@@ -60,7 +67,7 @@ class Mongo
         try
         {
             //We can write any JSONArray or JSONObject instance to the file
-            FileWriter fwrite=new FileWriter(this.file,true);
+            FileWriter fwrite=new FileWriter(this.file);
             fwrite.write(this.employeeList.toJSONString());
             fwrite.flush();
 
@@ -72,6 +79,10 @@ class Mongo
         }
         return false;
     }
+
+    /**
+     * this method prints all the data in json file
+     */
     public void find()
     {
         try
@@ -90,10 +101,52 @@ class Mongo
     }
 
     /**
-     * to generate unique ids for identification
-     * @return id
+     * this method updates the value for a given feild name
+     * @param field
+     * @param new_value
+     * @param old_value
+     * @return
      */
-    public String UUID()
+    public boolean update(String field, String new_value, Object old_value) throws IOException, FileNotFoundException
+    {
+        try
+        {
+            if (this.employeeList!=null)
+            {
+                for (Object j : this.employeeList) {
+                    JSONObject obj = (JSONObject) j;
+                    Object st=obj.get(field);
+                    if (st.equals(old_value)) {
+                        obj.remove(j);
+                        obj.put(field, new_value);
+                    }
+                }
+                try
+                {
+                    FileWriter fwrite=new FileWriter(this.file);
+                    fwrite.write(this.employeeList.toJSONString());
+                    fwrite.flush();
+                    return true;
+                } catch (Exception e) {
+                    System.out.println("error");
+                    return false;
+                }
+            }
+            else {
+                System.out.println("null");
+            }
+        }
+        catch(IOException e)
+        {
+            System.out.println("error");
+        }
+        return false;
+    }
+    /**
+     * to generate unique ids for identification
+     * @return id String
+     */
+    public String random_id()
     {
         UUID uuid=UUID.randomUUID();
         String str=String.valueOf(uuid);
@@ -104,7 +157,7 @@ class Mongo
      * deletes the entire file
      * @return boolean value whether the file is deleted or not
      */
-    public boolean delete()
+    public boolean delete() throws IOException, FileNotFoundException
     {
         if (file.delete()) {
             System.out.println("File deleted successfully");
@@ -118,10 +171,9 @@ class Mongo
     /**this method is used to insert in a son file returns true on success
      * returns boolean value to verify the success of operation
      */
-    @SuppressWarnings("unchecked")
-    public boolean insert() throws IOException
+    public boolean insert() throws IOException, FileNotFoundException, NullPointerException
     {
-        String id=this.UUID();
+        String id=this.random_id();
         System.out.println("Enter first name");
         String firstname=sc.next();
         String lastname=sc.next();
@@ -147,10 +199,9 @@ class Mongo
         try
         {
             //We can write any JSONArray or JSONObject instance to the file
-            FileWriter fwrite=new FileWriter(this.file,true);
+            FileWriter fwrite=new FileWriter(this.file);
             fwrite.write(this.employeeList.toJSONString());
             fwrite.flush();
-
             return true;
         }
         catch (IOException e)
@@ -159,19 +210,8 @@ class Mongo
         }
         return false;
     }
-
-    /**
-     *
-     * @param name of the feild ,value and operator
-     * prints all the objects that meets the given condition
-     */
-    public void findAll(String name, String value)
-    {
-
-    }
-
-    //public void
 }
+
 public class Main
 {
     public static void main(String[] args)
@@ -183,13 +223,16 @@ public class Main
             String filename = sc.next();
             Mongo mobj = new Mongo(filename);
             System.out.println("Add content");
+            boolean re;
             // here the schema is employee with contents- FirstName, Lastname, Age, Role, Manager, Experience
-            mobj.insert();
-            mobj.insert();
-            mobj.insertOne();
+            re=mobj.insert();
+            re=mobj.insert();
+            re=mobj.insertOne();
             mobj.find();
-            mobj.findAll("age",String.valueOf(21));
-            mobj.delete();
+            re=mobj.update("age","100000000","1");
+            mobj.find();
+            //mobj.delete();
+
         }
         catch(Exception e)
         {
